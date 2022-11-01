@@ -8,20 +8,18 @@
 #include <WiFi.h>
 #include "lcd_handling.h"
 #include "sensor_handling.h"
+#include "led_handling.h"
 #include "server_functions.h"
 /*-----------------------------------------------------------------------------------------------------------------
 |   Variables - Pins
 -----------------------------------------------------------------------------------------------------------------*/
-const char PROGMEM FW_VER[]  = "0.1";
-const char PROGMEM FW_DATE[] = "01072022";
+const char PROGMEM FW_VER[]  = "0.2";
+const char PROGMEM FW_DATE[] = "31102022";
 const char PROGMEM HW_VER[]  = "alpha_bread";
-float targetTemp = 67.5;
-float runningTemp = 0;
-const unsigned int burnAfter = 2000, burnTime = 5000;
-unsigned long timeMoved = 0, timeStarted = 0;
-int progress = 0;
-bool active = false;
-#define FET_PIN 5
+
+/* Pins */
+gpio_num_t ACC_INT_PIN      = GPIO_NUM_15;
+gpio_num_t FET_PIN          = GPIO_NUM_5;
 
 /* setting PWM properties */
 const int freq = 5000;
@@ -37,6 +35,7 @@ OneWire oneWire(oneWireBus);
 DallasTemperature sensors(&oneWire);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_MPU6050 mpu;
+CRGB leds[NUM_LEDS];
 
 /*-----------------------------------------------------------------------------------------------------------------
 |   PFP

@@ -7,19 +7,12 @@ extern DallasTemperature sensors;
 
 void
 init_mpu() {
-    if (!mpu.begin()) Serial.println("Failed to find MPU6050 chip");
-    else{
-        Serial.printf("\r\n[MPU]\tMPU6050 Init OK");
-//        display.setCursor(0,0);
-//        display.printf("MPU6050 Init OK");
-//        display.display();
-//        delay(500);
-    }
-
+    if         (!mpu.begin()) Serial.println("Failed to find MPU6050 chip");
+    else       Serial.printf("\r\n[MPU]\tMPU6050 Init OK");
     mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
     mpu.setMotionDetectionThreshold(5);
     mpu.setMotionDetectionDuration(20);
-    mpu.setInterruptPinLatch(true);
+    mpu.setInterruptPinLatch(false);
     mpu.setInterruptPinPolarity(true);
     mpu.setMotionInterrupt(true);
 }

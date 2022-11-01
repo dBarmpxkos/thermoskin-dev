@@ -2,8 +2,8 @@
 #include "lcd_handling.h"
 
 /* WiFi */
-char ssid[] = "ThermoSkin";
-char password[] = "thermoskin";
+char ssid[] = "thermoSkin";
+char password[] = "therm0sk1n";
 
 IPAddress localIP(192,168,1,99);
 IPAddress gateway(192,168,1,1);
@@ -90,18 +90,11 @@ not_found(AsyncWebServerRequest *request) {
     request->send(404, "text/plain", "Not found");
 }
 
-// Replaces placeholder with button section in your web page
-String processor(const String& var){
-    //Serial.println(var);
-    if (var == "SLIDERVALUE"){
-        return sliderValue;
-    }
-    else if(var == "TEMPERATURE"){
-        return String(runningTemp);
-    }
-    else if(var == "TARGET"){
-        return String(targetTemp);
-    }
+String
+processor(const String& var){
+    if (var == "SLIDERVALUE")      return sliderValue;
+    else if (var == "TEMPERATURE") return String(runningTemp);
+    else if (var == "TARGET")      return String(targetTemp);
     return String();
 }
 
@@ -187,9 +180,10 @@ setup_endpoints(){
 
     RESTServer.begin();
 
-    /*     RESTServer.on(increasePWM, HTTP_GET, increase_pwm);
+    /*
+    RESTServer.on(increasePWM, HTTP_GET, increase_pwm);
     RESTServer.on(decreasePWM, HTTP_GET, decrease_pwm);
     RESTServer.on(heatOn, HTTP_GET, activate_heater);
     RESTServer.on(heatOff, HTTP_GET, deactivate_heater);
-     */
+    */
 }
