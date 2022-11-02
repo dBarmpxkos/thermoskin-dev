@@ -12,7 +12,7 @@ init_mpu() {
     mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
     mpu.setMotionDetectionThreshold(5);
     mpu.setMotionDetectionDuration(20);
-    mpu.setInterruptPinLatch(false);
+    mpu.setInterruptPinLatch(true);
     mpu.setInterruptPinPolarity(true);
     mpu.setMotionInterrupt(true);
 }

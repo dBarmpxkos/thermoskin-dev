@@ -28,6 +28,15 @@ const int resolution = 8;
 int pwmValue = 0;
 String pwmValStr = "0";
 
+typedef enum {
+    stateIDLE,
+    stateSAMPLING,
+    stateHEATING,
+    stateSLEEPING,
+} eSystemState;
+
+eSystemState liveState = stateIDLE;
+
 /*-----------------------------------------------------------------------------------------------------------------
 |   Classes
 -----------------------------------------------------------------------------------------------------------------*/
@@ -37,10 +46,11 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Adafruit_MPU6050 mpu;
 CRGB leds[NUM_LEDS];
 
+hw_timer_t *breathTimer = nullptr;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 /*-----------------------------------------------------------------------------------------------------------------
 |   PFP
 -----------------------------------------------------------------------------------------------------------------*/
 void  print_info();
-float check_get_temp();
-
+void  breather(ledStatus ledState);
 #endif

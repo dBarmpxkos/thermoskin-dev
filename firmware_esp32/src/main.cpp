@@ -1,42 +1,73 @@
 #include "main.h"
 
+void
+IRAM_ATTR ticker() {
+    portENTER_CRITICAL_ISR(&timerMux);
+
+    brightness = brightness + fadeAmount;
+    if (brightness <= floorz || brightness >= ceilingz)
+        fadeAmount = -fadeAmount;
+
+
+    portEXIT_CRITICAL_ISR(&timerMux);
+}
+
 /*-----------------------------------------------------------------------------------------------------------------
 |   Main
 -----------------------------------------------------------------------------------------------------------------*/
 void
 setup() {
+    liveState = stateIDLE;
+
     Serial.begin(115200);
+    FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+    FastLED.setBrightness(brightness);
+    Serial.printf("\r\n[LED]\tLED OK");
+
 //    setup_AP(ssid, password, localIP, gateway, subnet);
 //    setup_endpoints();
     pinMode(ACC_INT_PIN, INPUT_PULLUP);
     print_info();
     init_mpu();
 
-    FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-    FastLED.setBrightness(brightness);
-    leds[0] = CRGB(0xFF9329);
-    FastLED.show();
-
-    ledcSetup(ledChannel, freq, resolution);
-    ledcAttachPin(FET_PIN, ledChannel);
+    breather(ledBreath);
 
 }
 
 void
 loop() {
-    sensors_event_t a, g, temp;
-    mpu.getEvent(&a, &g, &temp);
-    Serial.print("Temperature: ");
-    Serial.print(temp.temperature);
-    Serial.println(" degC");
-
-    if (brightness >= ceilingz) dir = DIR_DOWN;
-    else if (brightness <= floorz) dir = DIR_UP;
-    dir == DIR_UP ? brightness++ : brightness--;
-
     FastLED.setBrightness(brightness);
     FastLED.show();
-    delay(10);
+    int k = 0;
+
+    if (!digitalRead(ACC_INT_PIN)) {
+        Serial.printf("\r\n[SM]\tState: SAMPLING");
+        liveState = stateSAMPLING;
+        breather(ledAlarm);
+    }
+
+    if (liveState == stateIDLE) {
+        Serial.printf("\r\n[SM]\tState: IDLE");
+    }
+
+    while (liveState == stateSAMPLING) {
+        sensors_event_t a, g, temp;
+        mpu.getEvent(&a, &g, &temp);
+        FastLED.setBrightness(brightness);
+        FastLED.show();
+        k++;
+        if (k == 2000) {
+            mpu.getMotionInterruptStatus(); /* this clears the interrupt and goes to sleep */
+            breather(ledBreath);
+            liveState = stateIDLE;
+        }
+    }
+
+//    Serial.printf("\r\n[SLEEP]\tGoing to sleep");
+//    esp_sleep_enable_ext0_wakeup(ACC_INT_PIN, 0);
+//    esp_deep_sleep_start();
+
+
 }
 
 /*-----------------------------------------------------------------------------------------------------------------
@@ -46,24 +77,31 @@ void
 print_info() {
     char macAddr[20] = {'\0'};
     sprintf(macAddr, "%s", WiFi.macAddress().c_str());
-    Serial.printf("Serial number: %s\r\nFirmware Version: %s:%s\r\nHardware Version: %s\r\n",
+    Serial.printf("\r\n\r\n\r\n\r\nSerial number: %s\r\nFirmware Version: %s:%s\r\nHardware Version: %s\r\n",
                   macAddr, FW_VER, FW_DATE, HW_VER);
 
 }
 
-float
-check_get_temp() {
-    sensors.requestTemperatures();
-    delay(10);
-    float temperatureC = sensors.getTempCByIndex(0);
-    if (temperatureC == DEVICE_DISCONNECTED_C) {
-        lcd_go_and_print(display, "ERROR");
-        Serial.print("error in temp measurement");
-        Serial.println(temperatureC);
-        return -1;
+
+void
+breather(ledStatus ledState) {
+    if (ledState == ledBreath) {
+        breathTimer = timerBegin(0, 40, true);
+        timerAttachInterrupt(breathTimer, &ticker, true);
+        timerAlarmWrite(breathTimer, 100000, true);
+        timerAlarmEnable(breathTimer);
+        leds[0] = CRGB(0xFF9329);
+    } else if (ledState == ledAlarm) {
+        breathTimer = timerBegin(0, 40, true);
+        timerAttachInterrupt(breathTimer, &ticker, true);
+        timerAlarmWrite(breathTimer, 10000, true);
+        timerAlarmEnable(breathTimer);
+        leds[0] = CRGB(0x8B2DC2);
     } else {
-        lcd_print_temperature(display, temperatureC, targetTemp);
-        Serial.printf("\r\n[T]\t%.2f\r\n[X]\t%.2f", temperatureC, targetTemp);
-        return temperatureC;
+        timerAlarmDisable(breathTimer);
+        brightness = 0;
     }
 }
+
+
+
