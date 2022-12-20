@@ -7,7 +7,7 @@ extern DallasTemperature sensors;
 
 void
 init_mpu() {
-    if         (!mpu.begin()) Serial.println("Failed to find MPU6050 chip");
+    if         (!mpu.begin()) Serial.printf("\r\n[MPU]\tFailed to find MPU6050 chip");
     else       Serial.printf("\r\n[MPU]\tMPU6050 Init OK");
     mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
     mpu.setMotionDetectionThreshold(5);
@@ -17,16 +17,21 @@ init_mpu() {
     mpu.setMotionInterrupt(true);
 }
 
-void
+bool
 init_temp_sensor(){
     sensors.begin();
-    if (!sensors.getDeviceCount()) Serial.println("Failed to find temp sensor");
+    if (!sensors.getDeviceCount()) {
+        Serial.printf("\r\n[TEMP]\tFailed to find temp sensor");
+        return false;
+    }
     else {
         Serial.printf("\r\n[TEMP]\tDS18b20 Init OK");
-        display.setCursor(0,0);
-        display.printf("\r\nDS18b20 Init OK");
-        display.display();
-        delay(500);
+        return true;
     }
+}
 
+float
+get_temp(){
+    sensors.requestTemperatures();
+    return sensors.getTempCByIndex(0);
 }

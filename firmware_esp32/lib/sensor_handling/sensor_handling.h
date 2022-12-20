@@ -4,10 +4,11 @@
 #include <DallasTemperature.h>
 #include <Adafruit_MPU6050.h>
 
-const int oneWireBus = 16;
+const int oneWireBus = 32;
+#define THRESHOLD_TOUCH 50
 
 void init_mpu();
-void init_temp_sensor();
-
+bool init_temp_sensor();
+float get_temp();
 
 #endif //FIRMWARE_ESP32_SENSOR_HANDLING_H

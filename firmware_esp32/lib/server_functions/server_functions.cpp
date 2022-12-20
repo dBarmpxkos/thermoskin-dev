@@ -1,5 +1,4 @@
 #include "server_functions.h"
-#include "lcd_handling.h"
 
 /* WiFi */
 char ssid[] = "thermoSkin";
@@ -16,16 +15,14 @@ const char decreasePWM[]      = "/v1/decrease";
 const char heatOn[]           = "/v1/heaton";
 const char heatOff[]          = "/v1/heatoff";
 
-String sliderValue = "0";
 const char* PARAM_INPUT = "value";
-
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ThermoSkin</title>
   <style>
-    html {font-family: Arial; display: inline-block; text-align: center;}
+    html {font-family: Consolas; display: inline-block; text-align: center;}
     h2 {font-size: 2.3rem;}
     p {font-size: 1.9rem;}
     body {max-width: 400px; margin:0px auto; padding-bottom: 25px;}
@@ -38,20 +35,26 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
   <h2>ThermoSkin Web Interface</h2>
   <p><span id="textSliderValue">%SLIDERVALUE%</span></p>
-  <p><input type="range" onchange="updateSliderPWM(this)" id="pwmSlider" min="0" max="255" value="%SLIDERVALUE%" step="1" class="slider"></p>
+  <p><input type="range"
+    onchange="updateSliderPWM(this)"
+    id="pwmSlider"
+    min="0"
+    max="255"
+    value="%SLIDERVALUE%"
+    step="1"
+    class="slider"></p>
   <p>
-    <i class="fas fa-thermometer-half" style="color:#059e8a;"></i>
-    <span class="dht-labels">Temperature</span>
+    <span class="labels">Ambient Temperature</span>
     <span id="temperature">%TEMPERATURE%</span>
-    <sup class="units">&deg;C</sup>
+    <sup class="units">&deg;</sup>C
   </p>
   <p>
-    <i class="fas fa-thermometer-half" style="color:#059e8a;"></i>
-    <span class="dht-labels">Target</span>
-    <span id="temperature">%TARGET%</span>
-    <sup class="units">&deg;C</sup>
+    <span class="labels">Resistance</span>
+    <span id="resistance">%RESISTANCE% </span>
+    <sup class="units"></sup>&Omega;
   </p>
 <script>
+
 function updateSliderPWM(element) {
   var sliderValue = document.getElementById("pwmSlider").value;
   document.getElementById("textSliderValue").innerHTML = sliderValue;
@@ -70,9 +73,16 @@ setInterval(function ( ) {
   };
   xhttp.open("GET", "/temperature", true);
   xhttp.send();
+
+  xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("resistance").innerHTML = this.responseText;
+    }
+  };
+  xhttp.open("GET", "/resistance", true);
+  xhttp.send();
 }, 1000 ) ;
-
-
 </script>
 </body>
 </html>
@@ -92,9 +102,9 @@ not_found(AsyncWebServerRequest *request) {
 
 String
 processor(const String& var){
-    if (var == "SLIDERVALUE")      return sliderValue;
-    else if (var == "TEMPERATURE") return String(runningTemp);
-    else if (var == "TARGET")      return String(targetTemp);
+    if (var == "SLIDERVALUE")       return pwmValStr;
+    else if (var == "TEMPERATURE")  return String(runningTemp);
+    else if (var == "RESISTANCE")   return String(resistance);
     return String();
 }
 
@@ -105,7 +115,6 @@ increase_pwm(AsyncWebServerRequest *request){
     response->addHeader("Server","ThermoSkin");
     response->printf("Increased PWM to: %d", pwmValue);
     request->send(response);
-    lcd_go_and_print_value(display, "PWM Inc: ", pwmValue);
 }
 
 void
@@ -115,7 +124,6 @@ decrease_pwm(AsyncWebServerRequest *request){
     response->addHeader("Server","ThermoSkin");
     response->printf("Decreased PWM to: %d", pwmValue);
     request->send(response);
-    lcd_go_and_print_value(display, "PWM Dec: ", pwmValue);
 }
 
 void
@@ -125,7 +133,6 @@ activate_heater(AsyncWebServerRequest *request){
     response->addHeader("Server","ThermoSkin");
     response->printf("Activated FET");
     request->send(response);
-    lcd_go_and_print(display, "Heater: ON");
 }
 
 void
@@ -135,7 +142,6 @@ deactivate_heater(AsyncWebServerRequest *request){
     response->addHeader("Server","ThermoSkin");
     response->printf("Deactivated FET");
     request->send(response);
-    lcd_go_and_print(display, "Heater: OFF");
 }
 
 void
@@ -157,23 +163,28 @@ void
 setup_endpoints(){
     RESTServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send_P(200, "text/html", index_html, processor);
-    });
+    });         /* root */
+
     RESTServer.on("/slider", HTTP_GET, [] (AsyncWebServerRequest *request) {
         String inputMessage;
         if (request->hasParam(PARAM_INPUT)) {
             inputMessage = request->getParam(PARAM_INPUT)->value();
-            sliderValue = inputMessage;
-            ledcWrite(ledChannel, sliderValue.toInt());
-        }
-        else {
-            inputMessage = "No message sent";
-        }
-        Serial.println(inputMessage);
+            pwmValStr = inputMessage;
+        } else  inputMessage = "No message sent";
         request->send(200, "text/plain", "OK");
     });
+
     RESTServer.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(200, "text/plain", String(runningTemp).c_str());
+        char resBuf[20] = {'\0'};
+        dtostrf(runningTemp, 2, 3, resBuf);
+        request->send(200, "text/plain", resBuf);
     });
+    RESTServer.on("/resistance", HTTP_GET, [](AsyncWebServerRequest *request){
+        char resBuf[20] = {'\0'};
+        dtostrf(resistance, 2, 4, resBuf);
+        request->send(200, "text/plain", resBuf);
+    });
+
 
     RESTServer.onNotFound(not_found);
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");

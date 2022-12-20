@@ -7,8 +7,6 @@
 #include <ArduinoJson.h>
 #include "lcd_handling.h"
 
-extern Adafruit_SSD1306 display;
-
 /* WiFi */
 extern char ssid[];
 extern char password[];
@@ -22,7 +20,8 @@ extern int pwmValue;
 extern String pwmValStr;
 extern const int ledChannel;
 extern float runningTemp;
-extern float targetTemp;
+extern float resistance;
+
 /* PFP */
 void setup_AP(char *SSID, char *PWD,
               const IPAddress &softlocalIP, const IPAddress &softGateway, const IPAddress &softSubnet);
