@@ -1,5 +1,13 @@
 #include "main.h"
 
+/*
+ *  Flash green led slow
+ *  Polling / WiFi on
+ *  heater on -> red led on 4 seconds
+ *  When heater on, measure initial resistance, temperature
+ *  Room temperature, heater temperature, times activated
+ */
+
 void
 IRAM_ATTR led_ticker() {
     portENTER_CRITICAL_ISR(&timerMux);
@@ -20,63 +28,74 @@ IRAM_ATTR led_ticker() {
 -----------------------------------------------------------------------------------------------------------------*/
 void
 setup() {
+    char ssid[40] = {'\0'};
+    char ssidPrefix[] = "thermoSkin";
+    get_serial_num(serialNum);
+    sprintf(ssid, "%s-%s", ssidPrefix, serialNum);
+    setup_AP(ssid, password, localIP, gateway, subnet);
+    setup_endpoints();
+
     drive_off();
     Wire.begin();
     Serial.begin(115200);
     print_info();
 
+    pinMode(FET_PIN, OUTPUT);
+    pinMode(P_FET_PIN, OUTPUT);
+    digitalWrite(P_FET_PIN, LOW);
+
     pinMode(LED_PWM_PIN, OUTPUT);
     ledcSetup(ledChannel, freq, resolution);
     ledcAttachPin(LED_PWM_PIN, ledChannel);
 
-    pinMode(FET_PIN, OUTPUT);
-    digitalWrite(FET_PIN, LOW);
-    pinMode(P_FET_PIN, OUTPUT);
-    digitalWrite(P_FET_PIN, LOW);
+    ledcSetup(heatChannel, heatFreq, heatResolution);
+    ledcAttachPin(FET_PIN, heatChannel);
 
     while (!init_temp_sensor()) { /* waits */ }
 
-    setup_AP(ssid, password, localIP, gateway, subnet);
-    setup_endpoints();
     breather(ledBreath);
     liveState = stateIDLE;
-
-//    while(1){
-//
-//        digitalWrite(LED_PWM_PIN, LOW);
-//        Serial.printf("\r\n[Rx]\tDisconnecting heater driver to measure resistance");
-//        digitalWrite(FET_PIN, LOW);
-//        digitalWrite(P_FET_PIN, LOW);
-//
-//        Serial.printf("\r\nRh, %.5f, Text, %.2f", get_resistance(50), get_temp());
-//        delay(200);
-//        Serial.printf("\r\n[Rx]\tConnect Vbat");
-//        digitalWrite(LED_PWM_PIN, HIGH);
-//        Serial.printf("\r\n[Rx]\tFIRE!!!!");
-//        digitalWrite(FET_PIN, HIGH);
-//        digitalWrite(P_FET_PIN, HIGH);
-//        delay(5000);
-//        Serial.printf("\r\n[Rx]\tAre we dead yet? :)");
-//        digitalWrite(FET_PIN, LOW);
-//        digitalWrite(P_FET_PIN, LOW);
-//
-//        delay(200);
-//
-//    }
-
+    resistance = drive_measure_res(1);
 }
 
 void
 loop() {
 
-    Serial.printf("\r\n[PWM]\tManual PWM value: %d", pwmValStr.toInt());
+    roomTemp = get_temp();
+    if (wasPressed){
+        breather(ledHeat);
 
-    runningTemp = get_temp();
-    Serial.printf("\r\n[TEMP]\tAmbient temperature: %.3f", runningTemp);
+        unsigned long timePressed = millis();
+        unsigned char ticker = 0;
 
-    resistance = drive_measure_res(RES_SAMPLE_NUM);
-    Serial.printf("\r\n[RESx]\tResistance: %.4f", resistance);
-    delay(500);
+        digitalWrite(P_FET_PIN, HIGH);
+        ledcWrite(heatChannel, 255);
+
+        do {
+            delay(200);
+        } while (millis() - timePressed < 3500);
+
+
+        digitalWrite(P_FET_PIN, LOW);
+        ledcWrite(heatChannel, 0);
+        breather(ledBreath);
+
+        wasPressed = false;
+
+    }
+//    int pwmToHeat = pwmValStr.toInt();
+//    if (pwmToHeat){
+//        digitalWrite(P_FET_PIN, HIGH);
+//        ledcWrite(heatChannel, pwmToHeat);
+//        ledcWrite(ledChannel, pwmToHeat);
+//    } else {
+//        digitalWrite(P_FET_PIN, LOW);
+//        ledcWrite(heatChannel, 0);
+//        ledcWrite(ledChannel, 0);
+//        resistance = drive_measure_res(1);
+//        deviceTemp = calculate_temp(resistance);
+//    }
+
 
 }
 
@@ -98,7 +117,7 @@ breather(ledStatus ledState) {
     if (ledState == ledBreath) {
         breathTimer = timerBegin(0, 40, true);
         timerAttachInterrupt(breathTimer, &led_ticker, true);
-        timerAlarmWrite(breathTimer, 100000, true);
+        timerAlarmWrite(breathTimer, 40000, true);
         timerAlarmEnable(breathTimer);
 
     } else if (ledState == ledSample) {
@@ -110,7 +129,7 @@ breather(ledStatus ledState) {
     } else if (ledState == ledHeat) {
         breathTimer = timerBegin(0, 40, true);
         timerAttachInterrupt(breathTimer, &led_ticker, true);
-        timerAlarmWrite(breathTimer, 40000, true);
+        timerAlarmWrite(breathTimer, 1000, true);
         timerAlarmEnable(breathTimer);
 
     } else {
@@ -119,5 +138,11 @@ breather(ledStatus ledState) {
     }
 }
 
+void
+get_serial_num(char *serNumOut) {
+    uint8_t baseMac[6];
+    esp_read_mac(baseMac, ESP_MAC_WIFI_STA);
+    sprintf(serNumOut, "%02X%02X%02X%02X%02X%02X", baseMac[0], baseMac[1], baseMac[2], baseMac[3], baseMac[4], baseMac[5]);
+}
 
 

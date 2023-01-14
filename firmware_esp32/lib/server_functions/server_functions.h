@@ -8,7 +8,6 @@
 #include "lcd_handling.h"
 
 /* WiFi */
-extern char ssid[];
 extern char password[];
 
 extern IPAddress localIP;
@@ -19,8 +18,10 @@ extern AsyncWebServer RESTServer;
 extern int pwmValue;
 extern String pwmValStr;
 extern const int ledChannel;
-extern float runningTemp;
+extern float roomTemp;
+extern float deviceTemp;
 extern float resistance;
+extern volatile bool wasPressed;
 
 /* PFP */
 void setup_AP(char *SSID, char *PWD,

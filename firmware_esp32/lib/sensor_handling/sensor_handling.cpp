@@ -21,7 +21,6 @@ bool
 init_temp_sensor(){
     sensors.begin();
     if (!sensors.getDeviceCount()) {
-        Serial.printf("\r\n[TEMP]\tFailed to find temp sensor");
         return false;
     }
     else {

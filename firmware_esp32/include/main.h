@@ -17,6 +17,8 @@
 const char PROGMEM FW_VER[]  = "0.5.0";
 const char PROGMEM FW_DATE[] = "26112022";
 const char PROGMEM HW_VER[]  = "v0.9.0";
+char serialNum[18] = {'\0'};
+
 const char PROGMEM LOGO[] = "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\
  _______ __                               _______ __     __        \r\n\
 |_     _|  |--.-----.----.--------.-----.|     __|  |--.|__|.-----.\r\n\
@@ -33,11 +35,18 @@ gpio_num_t LED_PWM_PIN      = GPIO_NUM_2;
 const int freq = 5000;
 const int ledChannel = 0;
 const int resolution = 8;
+
+const int heatFreq = 5000;
+const int heatChannel = 1;
+const int heatResolution = 8;
 int pwmValue = 0;
 String pwmValStr = "0";
-float runningTemp;
+
+float roomTemp;
+float deviceTemp;
 float resistance;
 
+volatile bool wasPressed = false;
 #define RES_SAMPLE_NUM 50
 
 typedef enum {
@@ -60,4 +69,5 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 -----------------------------------------------------------------------------------------------------------------*/
 void  print_info();
 void  breather(ledStatus ledState);
+void get_serial_num(char *serNumOut);
 #endif

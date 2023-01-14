@@ -1,7 +1,6 @@
 #include "server_functions.h"
 
 /* WiFi */
-char ssid[] = "thermoSkin";
 char password[] = "therm0sk1n";
 
 IPAddress localIP(192,168,1,99);
@@ -19,71 +18,74 @@ const char* PARAM_INPUT = "value";
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ThermoSkin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    html {font-family: Consolas; display: inline-block; text-align: center;}
-    h2 {font-size: 2.3rem;}
-    p {font-size: 1.9rem;}
-    body {max-width: 400px; margin:0px auto; padding-bottom: 25px;}
-    .slider { -webkit-appearance: none; margin: 14px; width: 360px; height: 25px; background: #FFD65C;
-      outline: none; -webkit-transition: .2s; transition: opacity .2s;}
-    .slider::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 35px; height: 35px; background: #003249; cursor: pointer;}
-    .slider::-moz-range-thumb { width: 35px; height: 35px; background: #003249; cursor: pointer; }
+    body { font-family: Consolas; text-align: center; margin:0px auto; padding-top: 30px;}
+    .button-1 {
+      padding: 10px 20px;
+      font-size: 24px;
+      text-align: center;
+      outline: none;
+      color: #fff;
+      background-color: #2f4468;
+      border: none;
+      border-radius: 5px;
+      box-shadow: 6px 6px #999;
+      cursor: pointer;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+    }
+    .button-1:hover {background-color: #1f2e45}
+    .button-1:active {
+      background-color: #1f2e45;
+      box-shadow: 0 4px #666;
+      transform: translateY(2px);
+    }
   </style>
 </head>
 <body>
-  <h2>ThermoSkin Web Interface</h2>
-  <p><span id="textSliderValue">%SLIDERVALUE%</span></p>
-  <p><input type="range"
-    onchange="updateSliderPWM(this)"
-    id="pwmSlider"
-    min="0"
-    max="255"
-    value="%SLIDERVALUE%"
-    step="1"
-    class="slider"></p>
-  <p>
-    <span class="labels">Ambient Temperature</span>
-    <span id="temperature">%TEMPERATURE%</span>
-    <sup class="units">&deg;</sup>C
-  </p>
-  <p>
-    <span class="labels">Resistance</span>
-    <span id="resistance">%RESISTANCE% </span>
-    <sup class="units"></sup>&Omega;
-  </p>
+
+  <h1>ThermoSkin Web Interface</h1>
+  <button onclick="load_it()" class="button-1"  onmousedown="toggleCheckbox('on');"
+  ontouchstart="toggleCheckbox('on');"
+  onmouseup="toggleCheckbox('off');"
+  ontouchend="toggleCheckbox('off');">
+Activate!&#x1F525</button>
+
 <script>
-
-function updateSliderPWM(element) {
-  var sliderValue = document.getElementById("pwmSlider").value;
-  document.getElementById("textSliderValue").innerHTML = sliderValue;
-  console.log(sliderValue);
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/slider?value="+sliderValue, true);
-  xhr.send();
-}
-
-setInterval(function ( ) {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("temperature").innerHTML = this.responseText;
+  function load_it(){
+    const barInterval = setInterval(function(){
+    var z = document.getElementById('burn');
+    z.value = z.value+1;
+    if (z.value == 100) {
+      z.value = 0;
+      clearInterval(barInterval);
     }
-  };
-  xhttp.open("GET", "/temperature", true);
-  xhttp.send();
-
-  xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("resistance").innerHTML = this.responseText;
-    }
-  };
-  xhttp.open("GET", "/resistance", true);
-  xhttp.send();
-}, 1000 ) ;
+  }, 25);
+  }
 </script>
+
+<p>
+  <meter id="burn"
+  min="0" max="100"
+  low="33" high="66" optimum="80"
+  value="0">
+</meter>
+
+<script>
+ function toggleCheckbox(x) {
+   var xhr = new XMLHttpRequest();
+   xhr.open("GET", "/" + x, true);
+   xhr.send();
+ }
+</script>
+
 </body>
 </html>
 )rawliteral";
@@ -103,7 +105,8 @@ not_found(AsyncWebServerRequest *request) {
 String
 processor(const String& var){
     if (var == "SLIDERVALUE")       return pwmValStr;
-    else if (var == "TEMPERATURE")  return String(runningTemp);
+    else if (var == "TEMPERATURE")  return String(roomTemp);
+    else if (var == "DEVICETEMP")   return String(deviceTemp);
     else if (var == "RESISTANCE")   return String(resistance);
     return String();
 }
@@ -161,34 +164,51 @@ param_parser(AsyncWebServerRequest *request){
 
 void
 setup_endpoints(){
+    /* root */
     RESTServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send_P(200, "text/html", index_html, processor);
-    });         /* root */
-
+    });
+    /* PWM */
     RESTServer.on("/slider", HTTP_GET, [] (AsyncWebServerRequest *request) {
         String inputMessage;
         if (request->hasParam(PARAM_INPUT)) {
             inputMessage = request->getParam(PARAM_INPUT)->value();
             pwmValStr = inputMessage;
-        } else  inputMessage = "No message sent";
+        }
         request->send(200, "text/plain", "OK");
     });
-
+    /* room temperature endpoint */
     RESTServer.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request){
         char resBuf[20] = {'\0'};
-        dtostrf(runningTemp, 2, 3, resBuf);
+        dtostrf(roomTemp, 2, 3, resBuf);
         request->send(200, "text/plain", resBuf);
     });
+    /* device temperature endpoint */
+    RESTServer.on("/deviceTemp", HTTP_GET, [](AsyncWebServerRequest *request){
+        char resBuf[20] = {'\0'};
+        dtostrf(deviceTemp, 2, 3, resBuf);
+        request->send(200, "text/plain", resBuf);
+    });
+    /* resistance endpoint */
     RESTServer.on("/resistance", HTTP_GET, [](AsyncWebServerRequest *request){
         char resBuf[20] = {'\0'};
         dtostrf(resistance, 2, 4, resBuf);
         request->send(200, "text/plain", resBuf);
     });
 
+    /* demo on/off */
+    RESTServer.on("/on", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        wasPressed = true;
+        request->send(200, "text/plain", "ok");
+    });
+
+    /* demo on/off */
+    RESTServer.on("/off", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", "ok");
+    });
 
     RESTServer.onNotFound(not_found);
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
-
     RESTServer.begin();
 
     /*

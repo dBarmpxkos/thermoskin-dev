@@ -207,15 +207,29 @@ get_resistance(int M) {
     Rx   *= Rr * Rcal / n;                 // apply calibration factor and compute average
     Avgr *= 1000.0 / (2.0 * N * M);        // average in mV
     Avgx *= 1000.0 / (2.0 * N * M);
-    Serial.printf("\r\n[Rx]\t%.5f", Rx);
+    // Serial.printf("\r\n[Rx]\t%.5f", Rx);
 
     return Rx;
 }
 
 float
 drive_measure_res(int M){
-    digitalWrite(FET_PIN, LOW);         /*  make sure we switch heater off before connecting ADS1115 */
-    digitalWrite(P_FET_PIN, LOW);
-    return get_resistance(M);
+    float resTemp = 0;
+    bool nSideSwitchState = digitalRead(FET_PIN);
+    bool pSideSwitchState = digitalRead(P_FET_PIN);
 
+    digitalWrite(FET_PIN, LOW);                 /*  make sure we switch heater off before connecting ADS1115 */
+    digitalWrite(P_FET_PIN, LOW);
+    resTemp = get_resistance(M);
+    digitalWrite(FET_PIN, nSideSwitchState);    /*  leave pins at previous state */
+    digitalWrite(P_FET_PIN, pSideSwitchState);
+
+    return resTemp;
+
+}
+
+double
+calculate_temp(float res){
+    /* R = R0 ( 1 + αΔT ) */
+    return ((res - ROOM_RES)/(TCR*ROOM_RES)) + ROOM_TEMP;
 }

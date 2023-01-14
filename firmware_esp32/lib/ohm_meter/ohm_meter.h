@@ -23,7 +23,9 @@
 #define  ADS1115_0p256B 0x06   // same as ADS1115_0p256
 #define  ADS1115_0p256C 0x07   // same as ADS1115_0p256
 
-
+#define ROOM_TEMP   19
+#define ROOM_RES    2.4513
+#define TCR         0.00369
 float ADS1115_read(byte channel, byte gain);
 void drive_P();
 void drive_N();
@@ -32,5 +34,6 @@ void drive_off();
 int calc_PGA(float sampleVoltage);
 float get_resistance(int M);
 float drive_measure_res(int M);
+double calculate_temp(float res);
 
 #endif //FIRMWARE_ESP32_OHM_METER_H
