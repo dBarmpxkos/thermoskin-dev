@@ -11,6 +11,7 @@
 #include "led_handling.h"
 #include "server_functions.h"
 #include "ohm_meter.h"
+#include <QuickPID.h>
 /*-----------------------------------------------------------------------------------------------------------------
 |   Variables - Pins
 -----------------------------------------------------------------------------------------------------------------*/
@@ -42,11 +43,10 @@ const int heatResolution = 8;
 int pwmValue = 0;
 String pwmValStr = "0";
 
-float roomTemp;
-float deviceTemp;
+float temperature;
 float resistance;
+volatile bool lowHeat = false, medHeat = false, highHeat = false;
 
-volatile bool wasPressed = false;
 #define RES_SAMPLE_NUM 50
 
 typedef enum {
@@ -57,6 +57,18 @@ typedef enum {
 } eSystemState;
 eSystemState liveState = stateIDLE;
 
+typedef enum {
+    dummyCtrl = 0,
+    sliderCtrl,
+    PIDCtrl
+} eCtrlMode;
+eCtrlMode activeCtrl = dummyCtrl;
+
+
+/* PID Controller */
+float tempSetpointLow = 22.2, tempSetpointMid = 65, tempSetpointHigh = 80;
+float Kp = 2, Ki = 5, Kd = 1;
+float pwmToHeat = 0;
 /*-----------------------------------------------------------------------------------------------------------------
 |   Classes
 -----------------------------------------------------------------------------------------------------------------*/
@@ -64,10 +76,18 @@ OneWire oneWire(oneWireBus);
 DallasTemperature sensors(&oneWire);
 hw_timer_t *breathTimer = nullptr;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+QuickPID heaterPID_Low(&temperature, &pwmToHeat, &tempSetpointLow);
+QuickPID heaterPID_Mid(&temperature, &pwmToHeat, &tempSetpointMid);
+QuickPID heaterPID_High(&temperature, &pwmToHeat, &tempSetpointHigh);
+
 /*-----------------------------------------------------------------------------------------------------------------
 |   PFP
 -----------------------------------------------------------------------------------------------------------------*/
-void  print_info();
-void  breather(ledStatus ledState);
+void print_info();
+void gpio_init();
+void breather(ledStatus ledState);
 void get_serial_num(char *serNumOut);
+void dummy_ctrl();
+void slider_ctrl();
+void PID_ctrl();
 #endif

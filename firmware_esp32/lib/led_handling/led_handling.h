@@ -13,9 +13,10 @@ typedef enum {
     ledOff = 0,
     ledBreath,
     ledSample,
-    ledHeat,
+    ledHeatLowPulse,
+    ledHeatMidPulse,
+    ledHeatHighPulse
 } ledStatus;
 ledStatus ledState = ledOff;
-
 
 #endif //FIRMWARE_ESP32_LED_HANDLING_H

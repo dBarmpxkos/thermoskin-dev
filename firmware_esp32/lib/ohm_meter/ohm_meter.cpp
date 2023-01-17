@@ -4,15 +4,15 @@
 extern gpio_num_t FET_PIN;
 extern gpio_num_t P_FET_PIN;
 
-gpio_num_t DRIVA1      = GPIO_NUM_19;
-gpio_num_t DRIVA2      = GPIO_NUM_18;
-gpio_num_t DRIVA3      = GPIO_NUM_17;
-gpio_num_t DRIVA4      = GPIO_NUM_16;
+gpio_num_t DRIVA1 = GPIO_NUM_19;
+gpio_num_t DRIVA2 = GPIO_NUM_18;
+gpio_num_t DRIVA3 = GPIO_NUM_17;
+gpio_num_t DRIVA4 = GPIO_NUM_16;
 
-gpio_num_t DRIVB1      = GPIO_NUM_26;
-gpio_num_t DRIVB2      = GPIO_NUM_27;
-gpio_num_t DRIVB3      = GPIO_NUM_14;
-gpio_num_t DRIVB4      = GPIO_NUM_4;
+gpio_num_t DRIVB1 = GPIO_NUM_26;
+gpio_num_t DRIVB2 = GPIO_NUM_27;
+gpio_num_t DRIVB3 = GPIO_NUM_14;
+gpio_num_t DRIVB4 = GPIO_NUM_4;
 
 /*
   reads a single sample from the ADS1115 ADC at a given mux (channel) and gain setting
@@ -215,13 +215,13 @@ get_resistance(int M) {
 float
 drive_measure_res(int M){
     float resTemp = 0;
-    bool nSideSwitchState = digitalRead(FET_PIN);
+    uint8_t nSideSwitchState = ledcRead(1);
     bool pSideSwitchState = digitalRead(P_FET_PIN);
 
-    digitalWrite(FET_PIN, LOW);                 /*  make sure we switch heater off before connecting ADS1115 */
+    ledcWrite(1, 0);                 /*  make sure we switch heater off before connecting ADS1115 */
     digitalWrite(P_FET_PIN, LOW);
     resTemp = get_resistance(M);
-    digitalWrite(FET_PIN, nSideSwitchState);    /*  leave pins at previous state */
+    ledcWrite(1, nSideSwitchState);   /*  leave pins at previous state */
     digitalWrite(P_FET_PIN, pSideSwitchState);
 
     return resTemp;

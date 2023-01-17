@@ -22,13 +22,14 @@ const char index_html[] PROGMEM = R"rawliteral(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body { font-family: Consolas; text-align: center; margin:0px auto; padding-top: 30px;}
+
     .button-1 {
       padding: 10px 20px;
       font-size: 24px;
       text-align: center;
       outline: none;
       color: #fff;
-      background-color: #2f4468;
+      background-color: #628dd9;
       border: none;
       border-radius: 5px;
       box-shadow: 6px 6px #999;
@@ -47,19 +48,152 @@ const char index_html[] PROGMEM = R"rawliteral(
       box-shadow: 0 4px #666;
       transform: translateY(2px);
     }
+
+    .button-2 {
+      padding: 10px 20px;
+      font-size: 24px;
+      text-align: center;
+      outline: none;
+      color: #fff;
+      background-color: #30518a;
+      border: none;
+      border-radius: 5px;
+      box-shadow: 6px 6px #999;
+      cursor: pointer;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+    }
+    .button-2:hover {background-color: #1f2e45}
+    .button-2:active {
+      background-color: #1f2e45;
+      box-shadow: 0 4px #666;
+      transform: translateY(2px);
+    }
+
+    .button-3 {
+      padding: 10px 20px;
+      font-size: 24px;
+      text-align: center;
+      outline: none;
+      color: #fff;
+      background-color: #143163;
+      border: none;
+      border-radius: 5px;
+      box-shadow: 6px 6px #999;
+      cursor: pointer;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: rgba(0,0,0,0);
+    }
+    .button-3:hover {background-color: #1f2e45}
+    .button-3:active {
+      background-color: #1f2e45;
+      box-shadow: 0 4px #666;
+      transform: translateY(2px);
+    }
+
+  .card{
+    background: #02b875;
+    padding: 5px;
+    box-sizing: border-box;
+    height: auto;
+    width: 200px;
+    color: #FFF;
+    margin: 0 auto;
+    float: none;
+    margin-bottom: 10px;
+    box-shadow: 6px 6px #999;
+  }
+
   </style>
 </head>
 <body>
+<h1>ThermoSkin Web Interface</h1>
+<p style="font-size:24px;">&#x1F50B 97%</p>
+<div class="card">
+  <h3>Resistance: <span id="resValue">0</span> ohm</h3><br>
+  <h3>Temperature: <span id="tempValue">0</span>  degC</h3><br>
+</div>
+<script>
 
-  <h1>ThermoSkin Web Interface</h1>
-  <button onclick="load_it()" class="button-1"  onmousedown="toggleCheckbox('on');"
-  ontouchstart="toggleCheckbox('on');"
-  onmouseup="toggleCheckbox('off');"
-  ontouchend="toggleCheckbox('off');">
-Activate!&#x1F525</button>
+setInterval(function() {
+  getRes();
+  getTemp();
+}, 1000);
+
+function getRes() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("resValue").innerHTML =
+      this.responseText;
+    }
+  };
+  xhttp.open("GET", "readResistance", true);
+  xhttp.send();
+}
+
+function getTemp() {
+  var xhttp = new XMLHttpRequest();
+  xhttp.onreadystatechange = function() {
+    if (this.readyState == 4 && this.status == 200) {
+      document.getElementById("tempValue").innerHTML =
+      this.responseText;
+    }
+  };
+  xhttp.open("GET", "readTemp", true);
+  xhttp.send();
+}
+</script>
+
+<button onclick="load_it_1()" class="button-1"  onmousedown="toggleCheckbox_1('onLow');"
+  ontouchstart="toggleCheckbox_1('onLow');"
+  onmouseup="toggleCheckbox_1('off');"
+  ontouchend="toggleCheckbox_1('off');">Low<br>&#x1F525</button>
+
+<button onclick="load_it_2()" class="button-2"  onmousedown="toggleCheckbox_2('onMid');"
+  ontouchstart="toggleCheckbox_2('onMid');"
+  onmouseup="toggleCheckbox_2('off');"
+  ontouchend="toggleCheckbox_2('off');">Medium<br>&#x1F525&#x1F525</button>
+
+<button onclick="load_it_3()" class="button-3"  onmousedown="toggleCheckbox_3('onHigh');"
+  ontouchstart="toggleCheckbox_3('onHigh');"
+  onmouseup="toggleCheckbox_3('off');"
+  ontouchend="toggleCheckbox_3('off');">High<br>&#x1F525&#x1F525&#x1F525</button>
 
 <script>
-  function load_it(){
+  function load_it_1(){
+    const barInterval = setInterval(function(){
+    var z = document.getElementById('burn');
+    z.value = z.value+1;
+    if (z.value == 100) {
+      z.value = 0;
+      clearInterval(barInterval);
+    }
+  }, 25);
+  }
+
+  function load_it_2(){
+    const barInterval = setInterval(function(){
+    var z = document.getElementById('burn');
+    z.value = z.value+1;
+    if (z.value == 100) {
+      z.value = 0;
+      clearInterval(barInterval);
+    }
+  }, 25);
+  }
+
+  function load_it_3(){
     const barInterval = setInterval(function(){
     var z = document.getElementById('burn');
     z.value = z.value+1;
@@ -79,7 +213,17 @@ Activate!&#x1F525</button>
 </meter>
 
 <script>
- function toggleCheckbox(x) {
+ function toggleCheckbox_1(x) {
+   var xhr = new XMLHttpRequest();
+   xhr.open("GET", "/" + x, true);
+   xhr.send();
+ }
+function toggleCheckbox_2(x) {
+   var xhr = new XMLHttpRequest();
+   xhr.open("GET", "/" + x, true);
+   xhr.send();
+ }
+function toggleCheckbox_3(x) {
    var xhr = new XMLHttpRequest();
    xhr.open("GET", "/" + x, true);
    xhr.send();
@@ -105,8 +249,7 @@ not_found(AsyncWebServerRequest *request) {
 String
 processor(const String& var){
     if (var == "SLIDERVALUE")       return pwmValStr;
-    else if (var == "TEMPERATURE")  return String(roomTemp);
-    else if (var == "DEVICETEMP")   return String(deviceTemp);
+    else if (var == "DEVICETEMP")   return String(temperature);
     else if (var == "RESISTANCE")   return String(resistance);
     return String();
 }
@@ -180,13 +323,13 @@ setup_endpoints(){
     /* room temperature endpoint */
     RESTServer.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request){
         char resBuf[20] = {'\0'};
-        dtostrf(roomTemp, 2, 3, resBuf);
+        dtostrf(temperature, 2, 3, resBuf);
         request->send(200, "text/plain", resBuf);
     });
     /* device temperature endpoint */
     RESTServer.on("/deviceTemp", HTTP_GET, [](AsyncWebServerRequest *request){
         char resBuf[20] = {'\0'};
-        dtostrf(deviceTemp, 2, 3, resBuf);
+        dtostrf(temperature, 2, 3, resBuf);
         request->send(200, "text/plain", resBuf);
     });
     /* resistance endpoint */
@@ -197,14 +340,32 @@ setup_endpoints(){
     });
 
     /* demo on/off */
-    RESTServer.on("/on", HTTP_GET, [] (AsyncWebServerRequest *request) {
-        wasPressed = true;
+    RESTServer.on("/onLow", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        lowHeat = true;
+        request->send(200, "text/plain", "ok");
+    });
+    RESTServer.on("/onMid", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        medHeat = true;
+        request->send(200, "text/plain", "ok");
+    });
+    RESTServer.on("/onHigh", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        highHeat = true;
+        request->send(200, "text/plain", "ok");
+    });
+    RESTServer.on("/off", HTTP_GET, [] (AsyncWebServerRequest *request) {
         request->send(200, "text/plain", "ok");
     });
 
-    /* demo on/off */
-    RESTServer.on("/off", HTTP_GET, [] (AsyncWebServerRequest *request) {
-        request->send(200, "text/plain", "ok");
+    RESTServer.on("/readResistance", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        char htmlBuff[20] = {'\0'};
+        sprintf(htmlBuff, "%.4f", resistance);
+        request->send(200, "text/plain", htmlBuff);
+    });
+
+    RESTServer.on("/readTemp", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        char htmlBuff[20] = {'\0'};
+        sprintf(htmlBuff, "%.4f", temperature);
+        request->send(200, "text/plain", htmlBuff);
     });
 
     RESTServer.onNotFound(not_found);
