@@ -17,11 +17,17 @@ extern AsyncWebServer RESTServer;
 
 extern int pwmValue;
 extern String pwmValStr;
-extern const int ledChannel;
-extern float resistance;
+extern const int senseChannel;
+
+extern int progressBarStatus;
 extern float temperature;
+extern float resistance;
+extern float roomTemp;
+extern float roomResistance;
 
 extern volatile bool lowHeat, medHeat, highHeat;
+extern unsigned long hotTicker;
+extern volatile bool hotPicker;
 
 /* PFP */
 void setup_AP(char *SSID, char *PWD,

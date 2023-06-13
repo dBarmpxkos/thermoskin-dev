@@ -1,12 +1,9 @@
 #ifndef FIRMWARE_ESP32_SENSOR_HANDLING_H
 #define FIRMWARE_ESP32_SENSOR_HANDLING_H
 
-#include <DallasTemperature.h>
+#include <Adafruit_SHTC3.h>
 
-const int oneWireBus = 32;
-#define THRESHOLD_TOUCH 50
-
-void init_mpu();
-bool init_temp_sensor();
+bool initialize_sensor();
+void get_measurements(float &temperature, float &humidity);
 
 #endif //FIRMWARE_ESP32_SENSOR_HANDLING_H

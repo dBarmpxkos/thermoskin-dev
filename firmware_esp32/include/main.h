@@ -12,12 +12,13 @@
 #include "server_functions.h"
 #include "ohm_meter.h"
 #include <QuickPID.h>
+
 /*-----------------------------------------------------------------------------------------------------------------
 |   Variables - Pins
 -----------------------------------------------------------------------------------------------------------------*/
-const char PROGMEM FW_VER[]  = "0.5.0";
-const char PROGMEM FW_DATE[] = "26112022";
-const char PROGMEM HW_VER[]  = "v0.9.0";
+const char PROGMEM FW_VER[]  = "2.0.0";
+const char PROGMEM FW_DATE[] = "13062023";
+const char PROGMEM HW_VER[]  = "v2.0.0";
 char serialNum[18] = {'\0'};
 
 const char PROGMEM LOGO[] = "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\
@@ -27,15 +28,9 @@ const char PROGMEM LOGO[] = "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\
   |___| |__|__|_____|__| |__|__|__|_____||_______|__|__||__||__|__|\
 ";
 /* Pins */
-gpio_num_t ACC_INT_PIN      = GPIO_NUM_36;
 gpio_num_t FET_PIN          = GPIO_NUM_25;
 gpio_num_t P_FET_PIN        = GPIO_NUM_23;
 gpio_num_t LED_PWM_PIN      = GPIO_NUM_2;
-
-/* PWM */
-const int freq = 5000;
-const int ledChannel = 0;
-const int resolution = 8;
 
 const int heatFreq = 5000;
 const int heatChannel = 1;
@@ -43,51 +38,43 @@ const int heatResolution = 8;
 int pwmValue = 0;
 String pwmValStr = "0";
 
+volatile bool sampler = false;
+volatile bool hotPicker = false;
+unsigned long hotTicker = 0;
+
+float humidity;
 float temperature;
 float resistance;
+float roomTemp = 19.00;
+float roomResistance = 2.45;
+int progressBarStatus = 0;
+//#define TCR 0.00369
+
 volatile bool lowHeat = false, medHeat = false, highHeat = false;
-
-#define RES_SAMPLE_NUM 50
-
-typedef enum {
-    stateIDLE,
-    stateSAMPLING,
-    stateHEATING,
-    stateSLEEPING,
-} eSystemState;
-eSystemState liveState = stateIDLE;
 
 typedef enum {
     dummyCtrl = 0,
     sliderCtrl,
     PIDCtrl
 } eCtrlMode;
-eCtrlMode activeCtrl = dummyCtrl;
+eCtrlMode activeCtrl = PIDCtrl;
 
-
-/* PID Controller */
-float tempSetpointLow = 22.2, tempSetpointMid = 65, tempSetpointHigh = 80;
-float Kp = 2, Ki = 5, Kd = 1;
 float pwmToHeat = 0;
+unsigned long sampleTime = 2000000;
+
+#define RES_SAMPLES_LARGE 20
+#define RES_SAMPLES_MED   5
+#define RES_SAMPLES_SMALL 1
+
 /*-----------------------------------------------------------------------------------------------------------------
 |   Classes
 -----------------------------------------------------------------------------------------------------------------*/
-OneWire oneWire(oneWireBus);
-DallasTemperature sensors(&oneWire);
-hw_timer_t *breathTimer = nullptr;
+hw_timer_t *senseTimer = nullptr;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
-QuickPID heaterPID_Low(&temperature, &pwmToHeat, &tempSetpointLow);
-QuickPID heaterPID_Mid(&temperature, &pwmToHeat, &tempSetpointMid);
-QuickPID heaterPID_High(&temperature, &pwmToHeat, &tempSetpointHigh);
-
 /*-----------------------------------------------------------------------------------------------------------------
 |   PFP
 -----------------------------------------------------------------------------------------------------------------*/
 void print_info();
-void gpio_init();
-void breather(ledStatus ledState);
+void init_gpio_tim();
 void get_serial_num(char *serNumOut);
-void dummy_ctrl();
-void slider_ctrl();
-void PID_ctrl();
 #endif

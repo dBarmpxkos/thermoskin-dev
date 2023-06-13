@@ -19,9 +19,13 @@ const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
   <title>ThermoSkin</title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    body { font-family: Consolas; text-align: center; margin:0px auto; padding-top: 30px;}
+    body {
+      font-family: Consolas; text-align: center; margin:0px auto; padding-top: 30px;
+    }
 
     .button-1 {
       padding: 10px 20px;
@@ -75,162 +79,124 @@ const char index_html[] PROGMEM = R"rawliteral(
       transform: translateY(2px);
     }
 
-    .button-3 {
-      padding: 10px 20px;
-      font-size: 24px;
-      text-align: center;
-      outline: none;
-      color: #fff;
-      background-color: #143163;
-      border: none;
+    .card {
+      background: #02b875;
+      padding: 1px;
+      box-sizing: border-box;
+      height: auto;
+      width: 305px;
+      color: #FFF;
+      font-size: 22px;
+      margin: 0 auto;
       border-radius: 5px;
       box-shadow: 6px 6px #999;
-      cursor: pointer;
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      -khtml-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-      -webkit-tap-highlight-color: rgba(0,0,0,0);
-    }
-    .button-3:hover {background-color: #1f2e45}
-    .button-3:active {
-      background-color: #1f2e45;
-      box-shadow: 0 4px #666;
-      transform: translateY(2px);
+      float: none;
+      margin-bottom: 5px;
     }
 
-  .card{
-    background: #02b875;
-    padding: 5px;
-    box-sizing: border-box;
-    height: auto;
-    width: 200px;
-    color: #FFF;
-    margin: 0 auto;
-    float: none;
-    margin-bottom: 10px;
-    box-shadow: 6px 6px #999;
-  }
+    meter {
+      width: 350px;
+      height: 5px;
+    }
+
+    footer {
+      text-align: right;
+      padding: 15px;
+      color: black;
+    }
+
 
   </style>
+
 </head>
 <body>
-<h1>ThermoSkin Web Interface</h1>
-<p style="font-size:24px;">&#x1F50B 97%</p>
-<div class="card">
-  <h3>Resistance: <span id="resValue">0</span> ohm</h3><br>
-  <h3>Temperature: <span id="tempValue">0</span>  degC</h3><br>
-</div>
-<script>
 
-setInterval(function() {
-  getRes();
-  getTemp();
-}, 1000);
+  <h1>ThermoSkin Web Interface</h1>
 
-function getRes() {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("resValue").innerHTML =
-      this.responseText;
+  <p style="font-size:24px;">&#x1F50B 97%</p>
+  <div class="card">
+    <h3>&#127777;&#65039;Temperature: <span id="tempValue">0</span> degC</h3>
+  </div>
+  <script>
+
+
+    setInterval(function() {
+        getRes();
+        getTemp();
+        getProgress();
+    }, 250);
+
+    function getRes() {
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          document.getElementById("resValue").innerHTML =
+          this.responseText;
+        }
+      };
+      xhttp.open("GET", "readResistance", true);
+      xhttp.send();
     }
-  };
-  xhttp.open("GET", "readResistance", true);
-  xhttp.send();
-}
 
-function getTemp() {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      document.getElementById("tempValue").innerHTML =
-      this.responseText;
+    function getTemp() {
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          document.getElementById("tempValue").innerHTML =
+          this.responseText;
+        }
+      };
+      xhttp.open("GET", "readTemp", true);
+      xhttp.send();
     }
-  };
-  xhttp.open("GET", "readTemp", true);
-  xhttp.send();
-}
-</script>
 
-<button onclick="load_it_1()" class="button-1"  onmousedown="toggleCheckbox_1('onLow');"
-  ontouchstart="toggleCheckbox_1('onLow');"
-  onmouseup="toggleCheckbox_1('off');"
-  ontouchend="toggleCheckbox_1('off');">Low<br>&#x1F525</button>
-
-<button onclick="load_it_2()" class="button-2"  onmousedown="toggleCheckbox_2('onMid');"
-  ontouchstart="toggleCheckbox_2('onMid');"
-  onmouseup="toggleCheckbox_2('off');"
-  ontouchend="toggleCheckbox_2('off');">Medium<br>&#x1F525&#x1F525</button>
-
-<button onclick="load_it_3()" class="button-3"  onmousedown="toggleCheckbox_3('onHigh');"
-  ontouchstart="toggleCheckbox_3('onHigh');"
-  onmouseup="toggleCheckbox_3('off');"
-  ontouchend="toggleCheckbox_3('off');">High<br>&#x1F525&#x1F525&#x1F525</button>
-
-<script>
-  function load_it_1(){
-    const barInterval = setInterval(function(){
-    var z = document.getElementById('burn');
-    z.value = z.value+1;
-    if (z.value == 100) {
-      z.value = 0;
-      clearInterval(barInterval);
+    function getProgress() {
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          document.getElementById("burn").value =
+          this.responseText;
+        }
+      };
+      xhttp.open("GET", "isactive", true);
+      xhttp.send();
     }
-  }, 25);
-  }
-
-  function load_it_2(){
-    const barInterval = setInterval(function(){
-    var z = document.getElementById('burn');
-    z.value = z.value+1;
-    if (z.value == 100) {
-      z.value = 0;
-      clearInterval(barInterval);
-    }
-  }, 25);
-  }
-
-  function load_it_3(){
-    const barInterval = setInterval(function(){
-    var z = document.getElementById('burn');
-    z.value = z.value+1;
-    if (z.value == 100) {
-      z.value = 0;
-      clearInterval(barInterval);
-    }
-  }, 25);
-  }
-</script>
+  </script>
 
 <p>
-  <meter id="burn"
-  min="0" max="100"
-  low="33" high="66" optimum="80"
-  value="0">
-</meter>
+  <button onclick="toggleHot('onLow')" class="button-1"
+    onmousedown="toggleHot('onLow');"
+    ontouchstart="toggleHot('onLow');"
+    onmouseup="toggleHot('off');"
+    ontouchend="toggleHot('off');">
+    &#x1F525Medium (3 sec, 55 degC)<br>
+  </button>
+<p>
+  <button onclick="toggleHot('onMid')" class="button-2"
+  onmousedown="toggleHot('onMid');"
+  ontouchstart="toggleHot('onMid');"
+  onmouseup="toggleHot('off');"
+  ontouchend="toggleHot('off');">
+  &#x1F525&#x1F525High (3 sec, 70 degC)<br></button>
 
-<script>
- function toggleCheckbox_1(x) {
-   var xhr = new XMLHttpRequest();
-   xhr.open("GET", "/" + x, true);
-   xhr.send();
- }
-function toggleCheckbox_2(x) {
-   var xhr = new XMLHttpRequest();
-   xhr.open("GET", "/" + x, true);
-   xhr.send();
- }
-function toggleCheckbox_3(x) {
-   var xhr = new XMLHttpRequest();
-   xhr.open("GET", "/" + x, true);
-   xhr.send();
- }
-</script>
+  <script>
+   function toggleHot(x) {
+     var xhr = new XMLHttpRequest();
+     xhr.open("GET", "/" + x, true);
+     xhr.send();
+   }
+ </script>
+
+<div>
+  <meter id="burn" min="0" max="100" low="33" high="66" optimum="80" value="0"></meter>
+</div>
 
 </body>
+
+<footer>
+  <h6>Resistance: <span id="resValue">0</span> ohm</h6><br>
+</footer>
+
 </html>
 )rawliteral";
 
@@ -274,7 +240,7 @@ decrease_pwm(AsyncWebServerRequest *request){
 
 void
 activate_heater(AsyncWebServerRequest *request){
-    ledcWrite(ledChannel, pwmValue);
+    ledcWrite(senseChannel, pwmValue);
     AsyncResponseStream *response = request->beginResponseStream("text/html");
     response->addHeader("Server","ThermoSkin");
     response->printf("Activated FET");
@@ -283,7 +249,7 @@ activate_heater(AsyncWebServerRequest *request){
 
 void
 deactivate_heater(AsyncWebServerRequest *request){
-    ledcWrite(ledChannel, 0);
+    ledcWrite(senseChannel, 0);
     AsyncResponseStream *response = request->beginResponseStream("text/html");
     response->addHeader("Server","ThermoSkin");
     response->printf("Deactivated FET");
@@ -320,38 +286,21 @@ setup_endpoints(){
         }
         request->send(200, "text/plain", "OK");
     });
-    /* room temperature endpoint */
-    RESTServer.on("/temperature", HTTP_GET, [](AsyncWebServerRequest *request){
-        char resBuf[20] = {'\0'};
-        dtostrf(temperature, 2, 3, resBuf);
-        request->send(200, "text/plain", resBuf);
-    });
-    /* device temperature endpoint */
-    RESTServer.on("/deviceTemp", HTTP_GET, [](AsyncWebServerRequest *request){
-        char resBuf[20] = {'\0'};
-        dtostrf(temperature, 2, 3, resBuf);
-        request->send(200, "text/plain", resBuf);
-    });
-    /* resistance endpoint */
-    RESTServer.on("/resistance", HTTP_GET, [](AsyncWebServerRequest *request){
-        char resBuf[20] = {'\0'};
-        dtostrf(resistance, 2, 4, resBuf);
-        request->send(200, "text/plain", resBuf);
-    });
 
-    /* demo on/off */
     RESTServer.on("/onLow", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        hotTicker = millis();
+        hotPicker = true;
         lowHeat = true;
         request->send(200, "text/plain", "ok");
     });
+
     RESTServer.on("/onMid", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        hotTicker = millis();
+        hotPicker = true;
         medHeat = true;
         request->send(200, "text/plain", "ok");
     });
-    RESTServer.on("/onHigh", HTTP_GET, [] (AsyncWebServerRequest *request) {
-        highHeat = true;
-        request->send(200, "text/plain", "ok");
-    });
+
     RESTServer.on("/off", HTTP_GET, [] (AsyncWebServerRequest *request) {
         request->send(200, "text/plain", "ok");
     });
@@ -364,7 +313,14 @@ setup_endpoints(){
 
     RESTServer.on("/readTemp", HTTP_GET, [] (AsyncWebServerRequest *request) {
         char htmlBuff[20] = {'\0'};
-        sprintf(htmlBuff, "%.4f", temperature);
+        sprintf(htmlBuff, "%d", (int)temperature);
+        request->send(200, "text/plain", htmlBuff);
+    });
+
+    RESTServer.on("/isactive", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        char htmlBuff[20] = {'\0'};
+//        sprintf(htmlBuff, "%d", 1 + ( std::rand() % ( 100 - 1 + 1 ) ));
+        sprintf(htmlBuff, "%d", progressBarStatus);
         request->send(200, "text/plain", htmlBuff);
     });
 
