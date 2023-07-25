@@ -6,12 +6,11 @@
 -----------------------------------------------------------------------------------------------------------------*/
 #include <Arduino.h>
 #include <WiFi.h>
+#include "FastLED.h"
 #include "lcd_handling.h"
 #include "sensor_handling.h"
-#include "led_handling.h"
 #include "server_functions.h"
 #include "ohm_meter.h"
-#include <QuickPID.h>
 
 /*-----------------------------------------------------------------------------------------------------------------
 |   Variables - Pins
@@ -29,47 +28,50 @@ const char PROGMEM LOGO[] = "\r\n\r\n\r\n\r\n\r\n\r\n\r\n\
 ";
 /* Pins */
 gpio_num_t FET_PIN          = GPIO_NUM_25;
-gpio_num_t P_FET_PIN        = GPIO_NUM_23;
-gpio_num_t LED_PWM_PIN      = GPIO_NUM_2;
 
-const int heatFreq = 5000;
-const int heatChannel = 1;
-const int heatResolution = 8;
-int pwmValue = 0;
-String pwmValStr = "0";
-
-volatile bool sampler = false;
-volatile bool hotPicker = false;
-unsigned long hotTicker = 0;
+/* measurements */
+RTC_DATA_ATTR float roomTemp;
+RTC_DATA_ATTR float roomResistance;
 
 float humidity;
 float temperature;
 float resistance;
-float roomTemp = 19.00;
-float roomResistance = 2.45;
-int progressBarStatus = 0;
-//#define TCR 0.00369
+float batLevel = 0;
+float powLevel = 0;
+#define TARGET_TEMP 75
 
-volatile bool lowHeat = false, medHeat = false, highHeat = false;
+unsigned long sampleTime = 10000000;    /* ms to sleep */
+volatile bool byebye = false;
+unsigned long timeTouched = 0;
 
 typedef enum {
-    dummyCtrl = 0,
-    sliderCtrl,
-    PIDCtrl
-} eCtrlMode;
-eCtrlMode activeCtrl = PIDCtrl;
+    sIdle = 0,
+    sTouched,
+    sFinished
+} smHeatState;
+smHeatState smCtrl = sTouched;
 
-float pwmToHeat = 0;
-unsigned long sampleTime = 2000000;
+/* touch */
+int   touchCaliSize = 1000;
+volatile bool touchDetect = false;
+RTC_DATA_ATTR unsigned int touchCounter;
 
-#define RES_SAMPLES_LARGE 20
-#define RES_SAMPLES_MED   5
-#define RES_SAMPLES_SMALL 1
+/* LEDS */
+#define LED_PIN     GPIO_NUM_2
+#define LED_TYPE    WS2812
+#define COLOR_ORDER GRB
+#define NUM_LEDS   1
+
+#define HEAT_COL CRGB(10, 5, 0)
+#define WOKE_COL CRGB(250, 240, 250)
+#define DONE_COL CRGB(27, 100, 0)
+#define SLEEP_COL CRGB(111, 3, 168)
+CRGB leds[NUM_LEDS];
 
 /*-----------------------------------------------------------------------------------------------------------------
 |   Classes
 -----------------------------------------------------------------------------------------------------------------*/
-hw_timer_t *senseTimer = nullptr;
+hw_timer_t *sleepTimer = nullptr;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 /*-----------------------------------------------------------------------------------------------------------------
 |   PFP
@@ -77,4 +79,5 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 void print_info();
 void init_gpio_tim();
 void get_serial_num(char *serNumOut);
+int lazy_median(int arr[], uint8_t size);
 #endif

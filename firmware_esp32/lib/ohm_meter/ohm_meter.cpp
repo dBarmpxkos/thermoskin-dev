@@ -4,7 +4,7 @@
 Adafruit_INA219 ina219;
 
 double
-lazy_median(float arr[], uint8_t size) {
+lazy_median_float(float arr[], uint8_t size) {
     std::sort(arr, arr + size);
     if (size % 2)  return arr[size / 2];
     else           return (arr[(size - 1) / 2] + arr[size / 2]) / 2.0;
@@ -13,7 +13,7 @@ lazy_median(float arr[], uint8_t size) {
 bool
 initialize_ina219(){
     if (!ina219.begin()) {
-        Serial.printf("\r\n[SENS]\tProblem with SHTC3 sensor");
+        Serial.printf("\r\n[SENS]\tProblem with INA sensor");
         while (1) delay(1);
     } else return true;
 }
@@ -26,16 +26,22 @@ get_resistance(int M) {
     float loadvoltage = 0;
     float power_mW = 0;
     float resArray[M];
+    float resOut = 0;
 
     for (int i=0; i<M; i++){
         shuntvoltage = ina219.getShuntVoltage_mV();
         busvoltage = ina219.getBusVoltage_V();
-        current_mA = ina219.getCurrent_mA();
-        power_mW = ina219.getPower_mW();
+        current_mA = ina219.getCurrent_mA()*10      /* change for our shunt resistor */;
         loadvoltage = busvoltage + (shuntvoltage / 1000);
-        resArray[i] = loadvoltage/current_mA;
+        power_mW = loadvoltage * current_mA;
+        resArray[i] = loadvoltage/ (current_mA/1000);
     }
-    return (float)lazy_median(resArray, M);
+    resOut = (float)lazy_median_float(resArray, M);
+//    Serial.printf("\r\n[INA]\tshuntV: %.4f V\r\n\tbusV: %.4f V\r\n\tloadV: %.4f V\r\n\tI: %.4f mA\r\n\tP: %.4f mW\r\n\tres: %.3f",
+//                  shuntvoltage, busvoltage, loadvoltage, current_mA, power_mW, resOut);
+    batLevel = loadvoltage;
+    powLevel = power_mW;
+    return resOut;
 }
 
 double

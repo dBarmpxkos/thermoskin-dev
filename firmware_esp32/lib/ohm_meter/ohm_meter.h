@@ -7,9 +7,11 @@ extern float temperature;
 extern float resistance;
 extern float roomTemp;
 extern float roomResistance;
-#define TCR 0.000353
+extern float batLevel;
+extern float powLevel;
+#define TCR 0.0039
 
-double lazy_median(float arr[], uint8_t size);
+double lazy_median_float(float arr[], uint8_t size);
 bool initialize_ina219();
 float get_resistance(int M);
 double calculate_temp(float res);

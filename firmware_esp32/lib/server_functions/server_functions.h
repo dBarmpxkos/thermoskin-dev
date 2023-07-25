@@ -15,19 +15,12 @@ extern IPAddress gateway;
 extern IPAddress subnet;
 extern AsyncWebServer RESTServer;
 
-extern int pwmValue;
-extern String pwmValStr;
-extern const int senseChannel;
-
-extern int progressBarStatus;
 extern float temperature;
 extern float resistance;
 extern float roomTemp;
 extern float roomResistance;
-
-extern volatile bool lowHeat, medHeat, highHeat;
-extern unsigned long hotTicker;
-extern volatile bool hotPicker;
+extern float batLevel;
+extern RTC_DATA_ATTR unsigned int touchCounter;
 
 /* PFP */
 void setup_AP(char *SSID, char *PWD,

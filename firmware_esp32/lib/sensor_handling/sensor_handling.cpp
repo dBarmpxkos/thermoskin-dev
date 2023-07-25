@@ -18,7 +18,7 @@ get_measurements(float &temperature, float &humidity){
     temperature = liveTemp.temperature;
     humidity = liveHum.relative_humidity;
 
-    Serial.printf("\r\n[SENS]\tHumidity: %.3f, Temperature: %.3f",
+    Serial.printf("\r\n[SENS]\tHumidity: %.2f, Temperature: %.2f",
                   humidity, temperature);
 
 }
