@@ -1,3 +1,4 @@
+#include <SPIFFS.h>
 #include "server_functions.h"
 
 /* WiFi */
@@ -171,6 +172,10 @@ setup_endpoints(){
         char htmlBuff[20] = {'\0'};
         sprintf(htmlBuff, "%.2f", temperature);
         request->send(200, "text/plain", htmlBuff);
+    });
+
+    RESTServer.on("/data", HTTP_GET, [] (AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/measurements.txt", "text/plain");
     });
 
     RESTServer.onNotFound(not_found);

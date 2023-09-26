@@ -6,6 +6,8 @@
 -----------------------------------------------------------------------------------------------------------------*/
 #include <Arduino.h>
 #include <WiFi.h>
+#include "FS.h"
+#include "SPIFFS.h"
 #include "FastLED.h"
 #include "lcd_handling.h"
 #include "sensor_handling.h"
@@ -38,11 +40,12 @@ float temperature;
 float resistance;
 float batLevel = 0;
 float powLevel = 0;
-#define TARGET_TEMP 75
+#define TARGET_TEMP 70
 
 unsigned long sampleTime = 10000000;    /* ms to sleep */
 volatile bool byebye = false;
 unsigned long timeTouched = 0;
+unsigned long timeFinished = 0;
 
 typedef enum {
     sIdle = 0,
@@ -52,7 +55,7 @@ typedef enum {
 smHeatState smCtrl = sTouched;
 
 /* touch */
-int   touchCaliSize = 1000;
+int touchCaliSize = 1000;
 volatile bool touchDetect = false;
 RTC_DATA_ATTR unsigned int touchCounter;
 
@@ -68,6 +71,8 @@ RTC_DATA_ATTR unsigned int touchCounter;
 #define SLEEP_COL CRGB(111, 3, 168)
 CRGB leds[NUM_LEDS];
 
+#define FORMAT_SPIFFS_IF_FAILED true
+bool SPIFFSAOK = false;
 /*-----------------------------------------------------------------------------------------------------------------
 |   Classes
 -----------------------------------------------------------------------------------------------------------------*/
@@ -80,4 +85,12 @@ void print_info();
 void init_gpio_tim();
 void get_serial_num(char *serNumOut);
 int lazy_median(int arr[], uint8_t size);
+
+void listDir(fs::FS &fs, const char * dirname, uint8_t levels);
+void readFile(fs::FS &fs, const char * path);
+void writeFile(fs::FS &fs, const char * path, const char * message);
+void appendFile(fs::FS &fs, const char * path, const char * message);
+void renameFile(fs::FS &fs, const char * path1, const char * path2);
+void deleteFile(fs::FS &fs, const char * path);
+
 #endif

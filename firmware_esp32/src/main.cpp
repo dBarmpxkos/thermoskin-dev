@@ -8,6 +8,7 @@ knock_out() {
 void IRAM_ATTR
 touched() {
     timeTouched = millis();
+    timeFinished = 0;
     smCtrl = sIdle;
     touchDetect = true;
 }
@@ -35,6 +36,14 @@ setup() {
     print_info();
     init_gpio_tim();
 
+    if (!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)){
+        Serial.printf("\r\n[MEM]\tSPIFFS Mount Failed");
+        SPIFFSAOK = false;
+    } else {
+        Serial.printf("\r\n[MEM]\tSPIFFS Mount OK");
+        SPIFFSAOK = true;
+    }
+
     Wire.begin();
     while (!initialize_sensor()) { delay(10); }
     while (!initialize_ina219()) { delay(10); }
@@ -46,6 +55,9 @@ setup() {
         digitalWrite(FET_PIN, LOW);
         resistance = roomResistance;
         temperature = (float)calculate_temp(resistance);
+        char headers[100];
+        sprintf(headers,"room temperature: %.2f, room resistance: %.4f", roomTemp, resistance);
+        writeFile(SPIFFS, "/measurements.txt", headers);
     }
 
     Serial.printf("\r\n[INIT]\tInitial value is: %.4f ohm @ %.2f *C, woke up %d times",
@@ -61,7 +73,7 @@ loop() {
     if (smCtrl == sIdle){
         touchDetect = false;
         temperature = 0;
-        while (millis() - timeTouched < 2000) { /* waits */}
+        while (millis() - timeTouched < 2000) { /* waits */ }
         smCtrl = sTouched;
         touchCounter++;
     }
@@ -69,10 +81,13 @@ loop() {
     if (smCtrl == sTouched){
 
         uint8_t ledR = 10;
+        float initRes = 0, initTemp = 0;
         leds[0] = HEAT_COL;
         FastLED.show();
 
         digitalWrite(FET_PIN, HIGH);
+        initRes = get_resistance(1);
+        initTemp = (float)calculate_temp(resistance);
         do {
             if (touchDetect) {
                 touchDetect = false;
@@ -85,15 +100,20 @@ loop() {
             leds[0].red = ledR;
             FastLED.show();
 
-//            Serial.printf("\r\n%lu, %.3f, %.4f", millis(), temperature, resistance);
+            Serial.printf("\r\n%lu, %.3f, %.4f", millis(), temperature, resistance);
         } while (temperature < TARGET_TEMP);
         digitalWrite(FET_PIN, LOW);
+        timeFinished = millis();
         leds[0] = DONE_COL;
         FastLED.show();
 
-        if (temperature >= TARGET_TEMP){
+        if (temperature >= TARGET_TEMP) {
             smCtrl = sFinished;
             Serial.printf("\r\n[NFO]\tFinished heating, moving to idle state");
+            char dataToSPIFFS[100];
+            sprintf(dataToSPIFFS, "\r\n%lu, %.4f, %.2f, %.4f, %.2f",
+                    timeFinished - timeTouched, initRes, initTemp, resistance, temperature);
+            appendFile(SPIFFS, "/measurements.txt", dataToSPIFFS);
         }
     }
 
@@ -118,35 +138,34 @@ loop() {
             delay(500);
             leds[0] = CRGB(0, 0, 0);
             FastLED.show();
-
             esp_deep_sleep_start();
         }
     }
 
+    /* testing for battery drain */
+
+//        for (int i=0;i<500;i++) {
+//            do {
+//                leds[0] = HEAT_COL;
+//                FastLED.show();
+//                digitalWrite(FET_PIN, HIGH);
+//                resistance = get_resistance(1);
+//                temperature = (float)calculate_temp(resistance);
+//                Serial.printf("\r\n%lu, %.3f, %.4f, %.3f, %.4f", millis(), temperature, resistance, batLevel, powLevel);
+//            } while (temperature < TARGET_TEMP);
+//
+//            leds[0] = DONE_COL;
+//            FastLED.show();
+//            digitalWrite(FET_PIN, LOW);
+//            delay(40000);
+//        }
+//        leds[0] = CRGB(0, 0, 0);
+//        FastLED.show();
+//        esp_deep_sleep_start();
+//
+//        while (1) { };
+
     /* testing for battery drain
-     *
-        for (int i=0;i<500;i++) {
-            do {
-                leds[0] = HEAT_COL;
-                FastLED.show();
-                digitalWrite(FET_PIN, HIGH);
-                resistance = get_resistance(1);
-                temperature = (float)calculate_temp(resistance);
-                Serial.printf("\r\n%lu, %.3f, %.4f, %.3f, %.4f", millis(), temperature, resistance, batLevel, powLevel);
-            } while (temperature < TARGET_TEMP);
-
-            leds[0] = DONE_COL;
-            FastLED.show();
-            digitalWrite(FET_PIN, LOW);
-            delay(40000);
-        }
-        leds[0] = CRGB(0, 0, 0);
-        FastLED.show();
-        esp_deep_sleep_start();
-
-        while (1) { };
-
-    * testing for battery drain
     * */
 
 }
@@ -172,7 +191,10 @@ init_gpio_tim() {
     pinMode(FET_PIN, OUTPUT);
     digitalWrite(FET_PIN, LOW);
 
-    int touchCali = 5;
+//    while (1) {
+//        Serial.println(touchRead(T9));
+//    }
+    int touchCali = 12;
 //
 //    int touchDiff = 0;
 //    while (touchCali == 0){
@@ -213,4 +235,107 @@ lazy_median(int arr[], uint8_t size) {
     std::sort(arr, arr + size);
     if (size % 2)  return arr[size / 2];
     else           return (arr[(size - 1) / 2] + arr[size / 2]) / 2;
+}
+
+void
+listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+    Serial.printf("Listing directory: %s\r\n", dirname);
+
+    File root = fs.open(dirname);
+    if(!root){
+        Serial.println("- failed to open directory");
+        return;
+    }
+    if(!root.isDirectory()){
+        Serial.println(" - not a directory");
+        return;
+    }
+
+    File file = root.openNextFile();
+    while(file){
+        if(file.isDirectory()){
+            Serial.print("  DIR : ");
+            Serial.println(file.name());
+            if(levels){
+                listDir(fs, file.name(), levels -1);
+            }
+        } else {
+            Serial.print("  FILE: ");
+            Serial.print(file.name());
+            Serial.print("\tSIZE: ");
+            Serial.println(file.size());
+        }
+        file = root.openNextFile();
+    }
+}
+
+void
+readFile(fs::FS &fs, const char * path){
+    Serial.printf("Reading file: %s\r\n", path);
+
+    File file = fs.open(path);
+    if(!file || file.isDirectory()){
+        Serial.println("- failed to open file for reading");
+        return;
+    }
+
+    Serial.println("- read from file:");
+    while(file.available()){
+        Serial.write(file.read());
+    }
+    file.close();
+}
+
+void
+writeFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("\r\n[MEM]\tWriting file: %s", path);
+
+    File file = fs.open(path, FILE_WRITE);
+    if(!file){
+        Serial.printf("\r\n[MEM]\tFailed to open file for writing");
+        return;
+    }
+    if(file.print(message)){
+        Serial.printf("\r\n[MEM]\tFile written");
+    } else {
+        Serial.printf("\r\n[MEM]\tWrite failed");
+    }
+    file.close();
+}
+
+void
+appendFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("\r\n[MEM]\tAppending to file: %s", path);
+
+    File file = fs.open(path, FILE_APPEND);
+    if(!file){
+        Serial.printf("\r\n[MEM]\tFailed to open file for appending");
+        return;
+    }
+    if(file.print(message)){
+        Serial.printf("\r\n[MEM]\tData appended");
+    } else {
+        Serial.printf("\r\n[MEM]\tAppend failed");
+    }
+    file.close();
+}
+
+void
+renameFile(fs::FS &fs, const char * path1, const char * path2){
+    Serial.printf("Renaming file %s to %s\r\n", path1, path2);
+    if (fs.rename(path1, path2)) {
+        Serial.println("- file renamed");
+    } else {
+        Serial.println("- rename failed");
+    }
+}
+
+void
+deleteFile(fs::FS &fs, const char * path){
+    Serial.printf("Deleting file: %s\r\n", path);
+    if(fs.remove(path)){
+        Serial.println("- file deleted");
+    } else {
+        Serial.println("- delete failed");
+    }
 }
